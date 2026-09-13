@@ -2,11 +2,14 @@
 import pandas as pd
 from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import StandardScaler
+from pathlib import Path
+import joblib
 
-def load_and_split(csv_path, target_column="target", test_size=0.2, random_state=42):
+
+def load_and_split(csv_path, target_column="target", test_size=0.05, random_state=42):
     df = pd.read_csv(csv_path)
     X = df.drop(columns=[target_column]).values.astype("float32")
-    y = df[target_column].values.astype("float32")
+    y = df[target_column].values.astype("int64")
     print(f"Loaded data with {X.shape[0]} samples and {X.shape[1]} features.")
 
     X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=test_size, random_state=random_state)
@@ -23,6 +26,15 @@ def prepare_tabular_data(csv_path, target_column="target"):
     scaler = StandardScaler()
     X_train = scaler.fit_transform(X_train)
     X_test = scaler.transform(X_test)
+
+    # Guardar el mismo scaler para usarlo posteriormente en predicción
+    save_dir = Path("models/saved")
+    save_dir.mkdir(parents=True, exist_ok=True)
+
+    scaler_path = save_dir / "scaler.pkl"
+    joblib.dump(scaler, scaler_path)
+    print(f"Scaler guardado en: {scaler_path}")
+    
     print(f"prepare_tabular_data: X_train shape {X_train.shape}, y_train shape {y_train.shape}")
     print(f"prepare_tabular_data: X_test shape {X_test.shape}, y_test shape {y_test.shape}")
     

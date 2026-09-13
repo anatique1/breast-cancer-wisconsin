@@ -8,6 +8,13 @@ import pandas as pd
 from io import StringIO
 app = FastAPI()
 
+import logging
+
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
+
+# En lugar de print():
+
 @app.post("/predict/")
 async def predict(
     data_type: str = Form(...),          # 'tabular' | 'image' | 'audio'
@@ -21,7 +28,7 @@ async def predict(
         with open(temp_path, "wb") as f:
             f.write(await csv_file.read())
         df = pd.read_csv(temp_path)
-        x = preprocess_tabular(df)
+        x, _ = preprocess_tabular(df)  # No hay target en predicción
         
     elif data_type == "image":
         x = preprocess_image(await file.read())
@@ -37,16 +44,18 @@ async def predict(
 async def train_model(
     csv_file: UploadFile,
     framework: str = Form(...),
-    epochs: int = Form(20)
+    epochs: int = Form(20),
+    target_column: str = Form(...)  
 ):
     temp_path = Path("uploads") / csv_file.filename
     with open(temp_path, "wb") as f:
         f.write(await csv_file.read())
 
-    X_train, y_train, X_test, y_test = prepare_tabular_data(temp_path)
-    print(f"Training data shape: {X_train.shape}, {y_train.shape}")
-    print(f"Test data shape: {X_test.shape}, {y_test.shape}")
-    print(f"X_train dtype: {X_train.dtype}, y_train dtype: {y_train.dtype}")
+    logger.info(f"Training target_column: {target_column}")
+    X_train, y_train, X_test, y_test = prepare_tabular_data(temp_path, target_column=target_column)
+    logger.info(f"Training data shape: {X_train.shape}, {y_train.shape}")
+    logger.info(f"Test data shape: {X_test.shape}, {y_test.shape}")
+    logger.info(f"X_train dtype: {X_train.dtype}, y_train dtype: {y_train.dtype}")
 
     if framework.lower() == "pytorch":
         model_path = trainer_pt.train_tabular(X_train, y_train, X_test, y_test, epochs)

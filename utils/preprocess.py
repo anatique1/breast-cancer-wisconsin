@@ -7,7 +7,7 @@ import numpy as np
 import pandas as pd
 from typing import Tuple
 from sklearn.preprocessing import StandardScaler
-
+import joblib
 # Opcionales: solo si planeas usar imágenes/audio
 from PIL import Image
 import librosa
@@ -16,27 +16,33 @@ import librosa
 # -----------------------------
 # Tabular
 # -----------------------------
-def preprocess_tabular(df: pd.DataFrame) -> [ np.ndarray | None]: # type: ignore
-    """
-    Limpia y normaliza un DataFrame.
-    Si el CSV de entrenamiento incluye una columna 'target', la separa.
-    Retorna (X, y) o (X, None) si no hay target.
-    """
-
+def preprocess_tabular(df: pd.DataFrame, target_column: str = None) -> tuple[np.ndarray, np.ndarray | None]:
     df = df.copy()
 
-    df = df.drop(columns="target", errors="ignore")
-    
-    # Normalización by Scaler
-    scaler = StandardScaler()
-    print(f"scalar values : {df.astype(np.float32)}")
-    X = scaler.fit_transform(df.astype(np.float32))
-    
-    
-    return X
+    # Separar y antes de limpiar X
+    y = None
+    if target_column and target_column in df.columns:
+        y = df[target_column].values
+        df = df.drop(columns=[target_column])
 
-# -----------------------------
-# Imágenes
+    # Limpiar columnas con strings numéricos mal formateados
+    for col in df.columns:
+        if df[col].dtype == object:
+            df[col] = (
+                df[col]
+                .str.replace('.', '', regex=False)  # quitar puntos de miles
+                .str.replace(',', '.', regex=False) # coma decimal a punto
+            )
+            df[col] = pd.to_numeric(df[col], errors='coerce')
+
+    df = df.fillna(0)
+
+    scaler_path = "models/saved/scaler.pkl"
+    scaler = joblib.load(scaler_path)
+
+    X = scaler.transform(df.astype(np.float32).values)
+
+    return X, y
 # -----------------------------
 def preprocess_image(file_bytes: bytes, size: Tuple[int, int] = (128, 128)) -> np.ndarray:
     """

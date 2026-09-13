@@ -8,15 +8,17 @@ def get_model(data_type):
         if data_type == "tabular":
             from .pytorch_arch import TabularNet
             model = TabularNet()
-            model.load_state_dict(torch.load("saved_models/pt_tabular.pt"))
+            model.load_state_dict(
+                torch.load("models/saved/pt_tabular.pt", map_location="cpu")
+                )
         elif data_type == "image":
             from .pytorch_arch import ImageCNN
             model = ImageCNN()
-            model.load_state_dict(torch.load("saved_models/pt_image.pt"))
+            model.load_state_dict(torch.load("models/saved/pt_image.pt", map_location="cpu"))
         else:
             from .pytorch_arch import AudioCNN
             model = AudioCNN()
-            model.load_state_dict(torch.load("saved_models/pt_audio.pt"))
+            model.load_state_dict(torch.load("models/saved/pt_audio.pt", map_location="cpu" ))
         model.eval()
         _models[data_type] = model
     return _models[data_type]

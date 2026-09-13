@@ -1,4 +1,5 @@
 # app/models/tensorflow_arch.py
+
 from tensorflow import keras
 from tensorflow.keras import layers
 
@@ -8,10 +9,10 @@ def build_tabular_model(input_dim=30):
         layers.Input(shape=(input_dim,)),  # Primera capa Input
         layers.Dense(32, activation="relu"),
         layers.Dense(16, activation="relu"),
-        layers.Dense(1, activation="sigmoid")
+        layers.Dense(2, activation="softmax")  # Salida con 2 clases
     ])
     model.compile(optimizer="adam",
-                  loss="binary_crossentropy",
+                  loss="sparse_categorical_crossentropy",#tf.keras.losses.SparseCategoricalCrossentropy(from_logits=True),
                   metrics=["accuracy"])
     return model
 

@@ -11,10 +11,13 @@ class TabularNet(nn.Module):
             nn.Linear(32,16),
             nn.ReLU(),
             nn.Linear(16,n_classes),
-            nn.Sigmoid()
+            #Ya no vamos a usar la funcion sigmoide si no que vamos a usar CrossEntropyLoss
+            #nn.Sigmoid()
         )
     def forward(self,x): return self.net(x)
 
+
+#Estas clases de abajo no las vamos a usar, pero las dejo por si acaso
 class ImageCNN(nn.Module):
     def __init__(self):
         super().__init__()

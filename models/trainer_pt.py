@@ -6,7 +6,7 @@ from pathlib import Path
 
 def train_tabular(X_train, y_train, X_test, y_test, epochs=20):
     dataset = TensorDataset(torch.tensor(X_train, dtype=torch.float32),
-                            torch.tensor(y_train, dtype=torch.float32))
+                            torch.tensor(y_train, dtype=torch.long))
     loader = DataLoader(dataset, batch_size=32, shuffle=True)
 
     model = TabularNet(input_dim=X_train.shape[1])
@@ -15,13 +15,51 @@ def train_tabular(X_train, y_train, X_test, y_test, epochs=20):
     opt = optim.Adam(model.parameters(), lr=1e-3)
 
     for ep in range(epochs):
+        model.train()
+        total_loss = 0
         for xb, yb in loader:
             opt.zero_grad()
-            pred = model(xb).squeeze()
+            pred = model(xb)
             loss = loss_fn(pred, yb)
             loss.backward()
             opt.step()
+            total_loss += loss.item()
+        average_loss = total_loss / len(loader)
 
+        print(
+            f"Época {ep + 1}/{epochs} - "
+            f"Loss: {average_loss:.4f}"
+        )
+
+    # Evaluación con los datos de prueba
+    model.eval()
+
+    with torch.no_grad():
+
+        X_test_tensor = torch.tensor(
+            X_test,
+            dtype=torch.float32
+        )
+
+        y_test_tensor = torch.tensor(
+            y_test,
+            dtype=torch.long
+        )
+
+        predictions = model(X_test_tensor)
+
+        predicted_classes = torch.argmax(
+            predictions,
+            dim=1
+        )
+
+        accuracy = (
+            predicted_classes == y_test_tensor
+        ).float().mean().item()
+
+    print(f"Precisión en prueba: {accuracy * 100:.2f}%")
+
+    #guardar el modelo entrenado
     Path("models/saved").mkdir(exist_ok=True)
     save_path = Path("models/saved/pt_tabular.pt")
     torch.save(model.state_dict(), save_path)

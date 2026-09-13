@@ -4,7 +4,7 @@ import pandas as pd
 
 FASTAPI_URL = "http://localhost:8000"
 
-st.title("Demo Multimodal con TensorFlow / PyTorch")
+st.title("Demo Microservicio / PyTorch")
 
 data_type = st.selectbox("Tipo de dato", ["tabular", "image", "audio"])
 framework = st.selectbox("Framework", ["tensorflow", "pytorch"])
@@ -16,13 +16,20 @@ if mode == "Entrenar" and data_type == "tabular":
     if csv_file is not None:
         # Read the uploaded CSV into a DataFrame
         df = pd.read_csv(csv_file)
-
         st.subheader("First 5 Rows")
         st.dataframe(df.head())   # shows only the first 5 rows
+        # Dropdown con las columnas disponibles para seleccionar el target
+        target_column = st.selectbox("Selecciona la columna target", options=df.columns.tolist())
+    else:
+        target_column = None
+
     epochs = st.slider("Épocas", 1, 100, 20)
-    if csv_file and st.button("Entrenar"):
+    if csv_file and target_column and st.button("Entrenar"):
         files = {"csv_file": (csv_file.name, csv_file.getvalue(), "text/csv")}
-        data = {"framework": framework, "data_type": data_type, "epochs": str(epochs)}
+        data = {"framework": framework, 
+                "data_type": data_type, 
+                "epochs": str(epochs), 
+                "target_column": target_column}
         with st.spinner("Entrenando el modelo..."):
             res = requests.post(f"{FASTAPI_URL}/train/", files=files, data=data)
         st.write("Status:", res.status_code)
