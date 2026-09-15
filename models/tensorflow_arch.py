@@ -18,7 +18,7 @@ def build_tabular_model(input_dim=30):
 
 def build_image_model(num_classes=10):
     model = keras.Sequential([
-        layers.Input(shape=(32,32,3)),     
+        layers.Input(shape=(32,32,3)),
         layers.Conv2D(32, (3,3), activation="relu"),
         layers.MaxPooling2D(),
         layers.Conv2D(64, (3,3), activation="relu"),

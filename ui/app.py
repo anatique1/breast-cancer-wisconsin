@@ -35,7 +35,10 @@ if mode == "Entrenar" and data_type == "tabular":
         st.write("Status:", res.status_code)
         st.write("Raw response:", res.text)
 
-        st.write(res.json())
+        if res.ok:
+            st.write(res.json())
+        else:
+            st.error(f"Error {res.status_code}: {res.text}")
 
 elif mode == "Predecir":
     if data_type == "tabular":

@@ -25,6 +25,8 @@ async def predict(
     # Preprocesar según tipo
     if data_type == "tabular":
         temp_path = Path("uploads") / csv_file.filename
+        temp_path.parent.mkdir(parents=True, exist_ok=True)
+
         with open(temp_path, "wb") as f:
             f.write(await csv_file.read())
         df = pd.read_csv(temp_path)
@@ -45,9 +47,11 @@ async def train_model(
     csv_file: UploadFile,
     framework: str = Form(...),
     epochs: int = Form(20),
-    target_column: str = Form(...)  
+    target_column: str = Form(...)
 ):
     temp_path = Path("uploads") / csv_file.filename
+    temp_path.parent.mkdir(parents=True, exist_ok=True)
+
     with open(temp_path, "wb") as f:
         f.write(await csv_file.read())
 
