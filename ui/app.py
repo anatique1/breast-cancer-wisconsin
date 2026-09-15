@@ -4,78 +4,136 @@ import pandas as pd
 
 FASTAPI_URL = "http://localhost:8000"
 
-st.title("Demo Microservicio / PyTorch")
+st.title("Clasificación de Cáncer de Mama - Wisconsin")
+st.write("Microservicio de clasificación utilizando redes neuronales.")
 
-data_type = st.selectbox("Tipo de dato", ["tabular", "image", "audio"])
-framework = st.selectbox("Framework", ["tensorflow", "pytorch"])
-mode = st.radio("Modo de operación", ["Entrenar", "Predecir"])   
+framework = st.selectbox(
+    "Framework",
+    ["tensorflow", "pytorch"]
+)
 
-if mode == "Entrenar" and data_type == "tabular":
-    st.subheader("Entrenamiento")
-    csv_file = st.file_uploader("Sube CSV de entrenamiento", type="csv")
+mode = st.radio(
+    "Modo de operación",
+    ["Entrenar", "Predecir"]
+)
+
+if mode == "Entrenar":
+    st.subheader("Entrenamiento del modelo")
+
+    csv_file = st.file_uploader(
+        "Sube el CSV de entrenamiento",
+        type="csv"
+    )
+
     if csv_file is not None:
-        # Read the uploaded CSV into a DataFrame
         df = pd.read_csv(csv_file)
-        st.subheader("First 5 Rows")
-        st.dataframe(df.head())   # shows only the first 5 rows
-        # Dropdown con las columnas disponibles para seleccionar el target
-        target_column = st.selectbox("Selecciona la columna target", options=df.columns.tolist())
+
+        st.write("Datos del archivo:")
+        st.dataframe(df.head())
+
+        target_column = st.selectbox(
+            "Selecciona la columna objetivo",
+            options=df.columns.tolist()
+        )
+
+        st.write(f"Cantidad de registros: {df.shape[0]}")
+        st.write(f"Cantidad de características: {df.shape[1] - 1}")
+
     else:
         target_column = None
 
-    epochs = st.slider("Épocas", 1, 100, 20)
-    if csv_file and target_column and st.button("Entrenar"):
-        files = {"csv_file": (csv_file.name, csv_file.getvalue(), "text/csv")}
-        data = {"framework": framework, 
-                "data_type": data_type, 
-                "epochs": str(epochs), 
-                "target_column": target_column}
-        with st.spinner("Entrenando el modelo..."):
-            res = requests.post(f"{FASTAPI_URL}/train/", files=files, data=data)
-        st.write("Status:", res.status_code)
-        st.write("Raw response:", res.text)
+    epochs = st.slider(
+        "Número de épocas",
+        1,
+        100,
+        20
+    )
 
-        if res.ok:
-            st.write(res.json())
-        else:
-            st.error(f"Error {res.status_code}: {res.text}")
-
-elif mode == "Predecir":
-    if data_type == "tabular":
-        st.subheader("Predicción")
-        csv_file = st.file_uploader("Sube CSV a predecir", type="csv")
-        if csv_file is not None:
-            # Read the uploaded CSV into a DataFrame
-            df = pd.read_csv(csv_file)
-
-            st.subheader("First 5 Rows")
-            st.dataframe(df.head())   # shows only the first 5 rows
-        
-        if csv_file and st.button("Predecir"):
-            # OJO: para FastAPI mandamos multipart/form-data con 'files'
+    if csv_file is not None and target_column is not None:
+        if st.button("Entrenar modelo"):
             files = {
-                "csv_file": (csv_file.name, csv_file.getvalue(), "text/csv")
+                "csv_file": (
+                    csv_file.name,
+                    csv_file.getvalue(),
+                    "text/csv"
+                )
             }
+
             data = {
-                "data_type": "tabular",
-                "framework": framework,  # el que hayas seleccionado en tu UI
+                "framework": framework,
+                "epochs": str(epochs),
+                "target_column": target_column
             }
 
-            # Ahora sí: enviar archivo + form-data a FastAPI
-            res = requests.post(f"{FASTAPI_URL}/predict/", data=data, files=files)
-
-            st.write("Status:", res.status_code)
-            st.write("Raw response:", res.text)
+            with st.spinner("Entrenando el modelo..."):
+                res = requests.post(
+                    f"{FASTAPI_URL}/train",
+                    files=files,
+                    data=data
+                )
 
             if res.ok:
-                st.success("Predicción:")
-                st.json(res.json())
+                resultado = res.json()
+                st.success("Modelo entrenado correctamente.")
+                st.write("Modelo guardado en:")
+                st.code(resultado["saved_model"])
             else:
-                st.error("Error en la predicción")
-    else:
-        file = st.file_uploader("Sube archivo", type=["png","jpg","wav","mp3"])
-        if file and st.button("Predecir"):
-            data = {"data_type": data_type, "framework": framework}
-            files = {"file": (file.name, file.getvalue())}
-            r = requests.post(f"{FASTAPI_URL}/predict/", data=data, files=files)
-            st.write(r.json())
+                st.error(f"Error {res.status_code}: {res.text}")
+
+elif mode == "Predecir":
+    st.subheader("Predicción")
+
+    st.write(
+        "Sube un CSV que contenga las características "
+        "de los pacientes que se desean clasificar."
+    )
+
+    csv_file = st.file_uploader(
+        "Sube el CSV a predecir",
+        type="csv"
+    )
+
+    if csv_file is not None:
+        df = pd.read_csv(csv_file)
+
+        st.write("Datos a predecir:")
+        st.dataframe(df.head())
+
+        st.write(f"Cantidad de registros: {df.shape[0]}")
+        st.write(f"Cantidad de características: {df.shape[1]}")
+
+        if st.button("Realizar predicción"):
+            files = {
+                "csv_file": (
+                    csv_file.name,
+                    csv_file.getvalue(),
+                    "text/csv"
+                )
+            }
+
+            data = {
+                "data_type": "tabular",
+                "framework": framework
+            }
+
+            with st.spinner("Realizando predicciones..."):
+                res = requests.post(
+                    f"{FASTAPI_URL}/predict/",
+                    data=data,
+                    files=files
+                )
+
+            if res.ok:
+                resultado = res.json()
+                predicciones = resultado["prediction"]
+
+                st.success("Predicción realizada correctamente.")
+
+                resultado_df = df.copy()
+                resultado_df["Predicción"] = predicciones
+
+                st.dataframe(resultado_df)
+
+                st.write("0 = Maligno | 1 = Benigno")
+            else:
+                st.error(f"Error {res.status_code}: {res.text}")
