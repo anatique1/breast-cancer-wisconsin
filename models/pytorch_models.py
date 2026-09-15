@@ -22,3 +22,10 @@ def get_model(data_type):
         model.eval()
         _models[data_type] = model
     return _models[data_type]
+
+
+def invalidate_cache(data_type=None):
+    if data_type is None:
+        _models.clear()
+    else:
+        _models.pop(data_type, None)

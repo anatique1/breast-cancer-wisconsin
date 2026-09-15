@@ -1,3 +1,8 @@
+Equipo integrado por:
+
+- Ana María Tique, 2220241069
+- Yaritxa Duarte, 2220241061
+- Manuel Posada, 2220241121
 
 # Install the viraual environment
 > python -m venv .venv

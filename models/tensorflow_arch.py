@@ -6,13 +6,14 @@ from tensorflow.keras import layers
 def build_tabular_model(input_dim=30):
     
     model = keras.Sequential([
-        layers.Input(shape=(input_dim,)),  # Primera capa Input
+        layers.Input(shape=(input_dim,)),  # primera capa Input
+        layers.Dense(64, activation="relu"), #  más capacidad (64)
         layers.Dense(32, activation="relu"),
         layers.Dense(16, activation="relu"),
-        layers.Dense(2, activation="softmax")  # Salida con 2 clases
+        layers.Dense(1, activation="sigmoid")  # 1 neurona, Sigmoid
     ])
     model.compile(optimizer="adam",
-                  loss="sparse_categorical_crossentropy",#tf.keras.losses.SparseCategoricalCrossentropy(from_logits=True),
+                  loss="binary_crossentropy", # pérdida binaria
                   metrics=["accuracy"])
     return model
 

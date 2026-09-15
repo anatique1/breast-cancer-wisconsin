@@ -1,20 +1,20 @@
 import json
 from pathlib import Path
-from sklearn.preprocessing import StandardScaler
+
 import torch
 import torch.nn as nn
 import torch.optim as optim
 from torch.utils.data import DataLoader, TensorDataset
 
 from .pytorch_arch import TabularNet
+from .pytorch_models import invalidate_cache
 
 
 def train_tabular(X_train, y_train, X_test, y_test, epochs=20):
-    # Escalado de características para Wisconsin
-    scaler = StandardScaler()
-    X_train = scaler.fit_transform(X_train)
-    X_test = scaler.transform(X_test)
-
+    # NOTA: X_train / X_test ya vienen escalados desde utils/data.py
+    # (prepare_tabular_data), que además guarda el scaler en
+    # models/saved/scaler.pkl para usarlo en predicción. No volvemos a
+    # escalar aquí para no desalinear entrenamiento y predicción.
     dataset = TensorDataset(
         torch.tensor(X_train, dtype=torch.float32),
         torch.tensor(y_train, dtype=torch.long),
@@ -58,5 +58,9 @@ def train_tabular(X_train, y_train, X_test, y_test, epochs=20):
     metrics = {"accuracy": float(accuracy), "loss": float(average_loss)}
     with open("models/saved/pt_metrics.json", "w") as f:
         json.dump(metrics, f)
+
+    # Invalidar el modelo cacheado para que el próximo /predict/ recargue
+    # este modelo recién entrenado en vez del anterior en memoria.
+    invalidate_cache("tabular")
 
     return save_path, metrics
