@@ -5,15 +5,13 @@ from pathlib import Path
 from utils.data import load_and_split, prepare_tabular_data
 from models import trainer_tf, trainer_pt
 import pandas as pd
-from io import StringIO
-app = FastAPI()
-
+import json
 import logging
+
+app = FastAPI()
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
-
-# En lugar de print():
 
 @app.post("/predict/")
 async def predict(
@@ -39,8 +37,21 @@ async def predict(
     else:
         return {"error": "Tipo de dato no soportado"}
 
-    result = run_inference(x, framework, data_type)
-    return {"prediction": result}
+    # Obtener predicciones y probabilidades desde el modelo
+    preds, probs = run_inference(x, framework, data_type)
+    
+    # Intentar leer las estadísticas de entrenamiento guardadas
+    metrics_path = Path(f"models/saved/{'pt' if framework == 'pytorch' else 'tf'}_metrics.json")
+    model_metrics = None
+    if metrics_path.exists():
+        with open(metrics_path, "r") as f:
+            model_metrics = json.load(f)
+
+    return {
+        "prediction": preds, 
+        "confidence": probs,
+        "model_stats": model_metrics
+    }
 
 @app.post("/train")
 async def train_model(
@@ -62,8 +73,13 @@ async def train_model(
     logger.info(f"X_train dtype: {X_train.dtype}, y_train dtype: {y_train.dtype}")
 
     if framework.lower() == "pytorch":
-        model_path = trainer_pt.train_tabular(X_train, y_train, X_test, y_test, epochs)
+        # Los trainers ahora deben devolver (model_path, metrics)
+        model_path, metrics = trainer_pt.train_tabular(X_train, y_train, X_test, y_test, epochs)
     else:
-        model_path = trainer_tf.train_tabular(X_train, y_train, X_test, y_test, epochs)
+        model_path, metrics = trainer_tf.train_tabular(X_train, y_train, X_test, y_test, epochs)
 
-    return {"status": "ok", "saved_model": str(model_path)}
+    return {
+        "status": "ok", 
+        "saved_model": str(model_path),
+        "metrics": metrics
+    }

@@ -75,6 +75,15 @@ if mode == "Entrenar":
             if res.ok:
                 resultado = res.json()
                 st.success("Modelo entrenado correctamente.")
+                
+                # --- MOSTRAR MÉTRICAS DEL ENTRENAMIENTO ---
+                st.subheader("📊 Estadísticas del Entrenamiento")
+                metrics = resultado.get("metrics", {})
+                
+                col1, col2 = st.columns(2)
+                col1.metric("Precisión (Accuracy)", f"{metrics.get('accuracy', 0)*100:.2f}%")
+                col2.metric("Pérdida (Loss)", f"{metrics.get('loss', 0):.4f}")
+                
                 st.write("Modelo guardado en:")
                 st.code(resultado["saved_model"])
             else:
@@ -125,12 +134,21 @@ elif mode == "Predecir":
 
             if res.ok:
                 resultado = res.json()
-                predicciones = resultado["prediction"]
-
+                
                 st.success("Predicción realizada correctamente.")
+                
+                # --- MOSTRAR INFORMACIÓN DEL MODELO ---
+                stats = resultado.get("model_stats")
+                if stats:
+                    st.info(f"**Información del modelo:** Entrenado con una precisión en pruebas del **{stats['accuracy']*100:.2f}%**")
+                
+                predicciones = resultado["prediction"]
+                confianzas = resultado["confidence"]
 
+                # --- AGREGAR PREDICCIÓN Y CONFIANZA AL DATAFRAME ---
                 resultado_df = df.copy()
                 resultado_df["Predicción"] = predicciones
+                resultado_df["Confianza (%)"] = [f"{c*100:.2f}%" for c in confianzas]
 
                 st.dataframe(resultado_df)
 
