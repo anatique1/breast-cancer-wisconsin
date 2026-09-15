@@ -1,16 +1,28 @@
-import torch, torch.nn as nn, torch.optim as optim
-from torch.utils.data import DataLoader, TensorDataset
-from .pytorch_arch import TabularNet
-from pathlib import Path
 import json
+from pathlib import Path
+from sklearn.preprocessing import StandardScaler
+import torch
+import torch.nn as nn
+import torch.optim as optim
+from torch.utils.data import DataLoader, TensorDataset
+
+from .pytorch_arch import TabularNet
+
 
 def train_tabular(X_train, y_train, X_test, y_test, epochs=20):
-    dataset = TensorDataset(torch.tensor(X_train, dtype=torch.float32),
-                            torch.tensor(y_train, dtype=torch.long))
+    # Escalado de características para Wisconsin
+    scaler = StandardScaler()
+    X_train = scaler.fit_transform(X_train)
+    X_test = scaler.transform(X_test)
+
+    dataset = TensorDataset(
+        torch.tensor(X_train, dtype=torch.float32),
+        torch.tensor(y_train, dtype=torch.long),
+    )
     loader = DataLoader(dataset, batch_size=32, shuffle=True)
 
-    model = TabularNet(input_dim=X_train.shape[1])
-    loss_fn = nn.CrossEntropyLoss() 
+    model = TabularNet(input_dim=X_train.shape[1], n_classes=2)
+    loss_fn = nn.CrossEntropyLoss()
     opt = optim.Adam(model.parameters(), lr=1e-3)
 
     average_loss = 0
@@ -42,8 +54,7 @@ def train_tabular(X_train, y_train, X_test, y_test, epochs=20):
     Path("models/saved").mkdir(parents=True, exist_ok=True)
     save_path = Path("models/saved/pt_tabular.pt")
     torch.save(model.state_dict(), save_path)
-    
-    # Guardar métricas en disco
+
     metrics = {"accuracy": float(accuracy), "loss": float(average_loss)}
     with open("models/saved/pt_metrics.json", "w") as f:
         json.dump(metrics, f)
